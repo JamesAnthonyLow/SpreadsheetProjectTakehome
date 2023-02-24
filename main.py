@@ -10,7 +10,7 @@ class SpreadsheetController(cmd.Cmd):
     prompt = "(spreadsheet) "
     file = None
 
-    def onecmd(self, line):
+    def onecmd(self, line: str) -> bool:
         permitted_errors = (
             KeyError,
             ValueError,
