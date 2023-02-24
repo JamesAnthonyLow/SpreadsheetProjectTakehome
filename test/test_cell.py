@@ -12,7 +12,8 @@ import spreadsheet
     ],
 )
 def test_is_dynamic(input, expected):
-    cell = spreadsheet.Cell(input)
+    cell = spreadsheet.Cell()
+    cell.set_contents(input)
     assert cell.is_dynamic == expected
 
 
@@ -32,7 +33,8 @@ def test_is_dynamic(input, expected):
     ],
 )
 def test_value(input, expected):
-    cell = spreadsheet.Cell(input)
+    cell = spreadsheet.Cell()
+    cell.set_contents(input)
     cell.eval()
     assert cell.value == expected
 
@@ -47,7 +49,8 @@ def test_value(input, expected):
     ],
 )
 def test_blacklisted(input, exception, message):
-    cell = spreadsheet.Cell(input)
+    cell = spreadsheet.Cell()
+    cell.set_contents(input)
     with pytest.raises(exception) as exc_info:
         cell.eval()
     assert str(exc_info.value) == message
