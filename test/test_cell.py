@@ -5,6 +5,11 @@ import pytest
 import spreadsheet
 
 
+@pytest.fixture
+def cell() -> spreadsheet.Cell:
+    return spreadsheet.Cell(0, 0)
+
+
 @pytest.mark.parametrize(
     "input,expected",
     [
@@ -14,8 +19,7 @@ import spreadsheet
         ("=1", True),
     ],
 )
-def test_is_dynamic(input: str, expected: bool) -> None:
-    cell = spreadsheet.Cell()
+def test_is_dynamic(input: str, expected: bool, cell: spreadsheet.Cell) -> None:
     cell.set_contents(input)
     assert cell.is_dynamic == expected
 
@@ -35,8 +39,7 @@ def test_is_dynamic(input: str, expected: bool) -> None:
         ("=None", "N/A"),
     ],
 )
-def test_value(input: str, expected: typing.Any) -> None:
-    cell = spreadsheet.Cell()
+def test_value(input: str, expected: typing.Any, cell: spreadsheet.Cell) -> None:
     cell.set_contents(input)
     assert cell.value == expected
 
@@ -50,8 +53,9 @@ def test_value(input: str, expected: typing.Any) -> None:
         ("=import json", SyntaxError, "invalid syntax (<string>, line 1)"),
     ],
 )
-def test_blacklisted(input: str, exception: typing.Any, message: str) -> None:
-    cell = spreadsheet.Cell()
+def test_blacklisted(
+    input: str, exception: typing.Any, message: str, cell: spreadsheet.Cell
+) -> None:
     with pytest.raises(exception) as exc_info:
         cell.set_contents(input)
     assert str(exc_info.value) == message
