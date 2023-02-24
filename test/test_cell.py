@@ -35,3 +35,16 @@ def test_value(input, expected):
     cell = spreadsheet.Cell(input)
     cell.eval()
     assert cell.value == expected
+
+
+@pytest.mark.parametrize(
+    "input,exception",
+    [
+        ("=next(())", "Method not in whitelist: ['next']!!"),
+    ],
+)
+def test_blacklisted(input, exception):
+    cell = spreadsheet.Cell(input)
+    with pytest.raises(PermissionError) as exc_info:
+        cell.eval()
+    assert str(exc_info.value) == exception
