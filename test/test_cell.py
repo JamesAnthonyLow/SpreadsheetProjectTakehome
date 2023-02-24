@@ -1,4 +1,7 @@
+import typing
+
 import pytest
+
 import spreadsheet
 
 
@@ -11,7 +14,7 @@ import spreadsheet
         ("=1", True),
     ],
 )
-def test_is_dynamic(input, expected):
+def test_is_dynamic(input: str, expected: bool) -> None:
     cell = spreadsheet.Cell()
     cell.set_contents(input)
     assert cell.is_dynamic == expected
@@ -32,10 +35,9 @@ def test_is_dynamic(input, expected):
         ("=None", "N/A"),
     ],
 )
-def test_value(input, expected):
+def test_value(input: str, expected: typing.Any) -> None:
     cell = spreadsheet.Cell()
     cell.set_contents(input)
-    cell.eval()
     assert cell.value == expected
 
 
@@ -48,9 +50,8 @@ def test_value(input, expected):
         ("=import json", SyntaxError, "invalid syntax (<string>, line 1)"),
     ],
 )
-def test_blacklisted(input, exception, message):
+def test_blacklisted(input: str, exception: typing.Any, message: str) -> None:
     cell = spreadsheet.Cell()
-    cell.set_contents(input)
     with pytest.raises(exception) as exc_info:
-        cell.eval()
+        cell.set_contents(input)
     assert str(exc_info.value) == message

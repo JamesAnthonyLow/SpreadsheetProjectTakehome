@@ -1,4 +1,7 @@
+import typing
+
 import pytest
+
 import spreadsheet
 
 
@@ -58,7 +61,9 @@ import spreadsheet
         ),
     ],
 )
-def test_pretty_print(changes, expected):
+def test_pretty_print(
+    changes: typing.List[typing.Tuple[str, str]], expected: str
+) -> None:
     sheet = spreadsheet.Spreadsheet()
     for cell_key, value in changes:
         sheet[cell_key] = value

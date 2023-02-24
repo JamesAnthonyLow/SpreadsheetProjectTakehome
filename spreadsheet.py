@@ -1,23 +1,24 @@
 import re
-import prettytable
 import typing
+
+import prettytable
 
 
 class Cell:
-    def __init__(self):
-        self._contents: str = ""
-        self.value: typing.Optional[typing.Union[int, float, str]] = None
+    def __init__(self) -> None:
+        self.contents: str = ""
+        self.value: typing.Union[int, float, str] = ""
 
     @property
     def is_dynamic(self) -> bool:
-        return self._contents.startswith("=")
+        return self.contents.startswith("=")
 
-    def set_contents(self, _contents: str):
-        self._contents: str = _contents
+    def set_contents(self, contents: str) -> None:
+        self.contents = contents
+        self._eval()
 
-    def _parse_value(value: typing.Optional[str]) -> typing.Union[int, float, str]:
-        if value is None:
-            return ""
+    @staticmethod
+    def _parse_value(value: str) -> typing.Union[int, float, str]:
         try:
             return int(value)
         except ValueError:
@@ -27,11 +28,9 @@ class Cell:
                 ...
         return value
 
-    def eval(self):
+    def _eval(self) -> None:
         if not self.is_dynamic:
-            self.value: typing.Union[int, float, str] = Cell._parse_value(
-                self._contents
-            )
+            self.value = Cell._parse_value(self.contents)
         else:
             method_whitelist = ["sum", "max", "min"]
             """
@@ -41,7 +40,7 @@ class Cell:
             Imports are forbidden
             """
             compiled = compile(
-                filename="<string>", source=self._contents[1:], mode="eval"
+                filename="<string>", source=self.contents[1:], mode="eval"
             )
             blacklisted = [
                 name for name in compiled.co_names if name not in method_whitelist
@@ -52,14 +51,14 @@ class Cell:
             value = eval(compiled)
             if value is None:
                 value = "N/A"
-            self.value: typing.Union[int, float, str] = value
+            self.value = value
 
 
 COLUMNS = [c for c in "ABCDEFGHIJKLMNOPQRSTUVWXYZ"]
 
 
 class CellKey:
-    def __init__(self, key_string):
+    def __init__(self, key_string: str) -> None:
         result = re.search(r"^([A-Z])([0-9]+)$", key_string)
         if result is None:
             raise KeyError("Invalid key format")
@@ -67,7 +66,7 @@ class CellKey:
         self.column = COLUMNS.index(column_character)
         self.row = int(row_idx) - 1
 
-    def __repr__(self):
+    def __repr__(self) -> str:
         return f"Column: {self.column}, Row: {self.row}"
 
 
@@ -81,7 +80,7 @@ class Spreadsheet:
         number_of_columns: int = 10,
         number_of_rows: int = 10,
         cell_width: int = 10,
-    ):
+    ) -> None:
         if number_of_columns > MAX_SPREADSHEET_COLUMNS:
             raise ValueError("Number of columns exceeds max")
 
@@ -98,19 +97,15 @@ class Spreadsheet:
                 row.append(Cell())
             self.cells.append(row)
 
-    def __setitem__(self, key_string: str, contents: str):
+    def __setitem__(self, key_string: str, contents: str) -> None:
         cell_key = CellKey(key_string=key_string)
         self.cells[cell_key.row][cell_key.column].set_contents(contents)
 
-    def __str__(self):
+    def __str__(self) -> str:
         headers = COLUMNS[: self.number_of_columns]
         table = prettytable.PrettyTable()
         table.field_names = ["Row"] + headers
         for row_no, row_cells in enumerate(self.cells):
-            row = []
-            for cell in row_cells:
-                if cell.value is None:
-                    cell.eval()
-                row.append(cell.value)
+            row = [cell.value for cell in row_cells]
             table.add_row(row=[row_no + 1] + row)
         return f"{table}"
