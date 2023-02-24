@@ -38,13 +38,16 @@ def test_value(input, expected):
 
 
 @pytest.mark.parametrize(
-    "input,exception",
+    "input,exception,message",
     [
-        ("=next(())", "Method not in whitelist: ['next']!!"),
+        # Methods not on the whitelist are not allowed
+        ("=next(())", PermissionError, "Method not in whitelist: ['next']!!"),
+        # Imports are not allowed
+        ("=import json", SyntaxError, "invalid syntax (<string>, line 1)"),
     ],
 )
-def test_blacklisted(input, exception):
+def test_blacklisted(input, exception, message):
     cell = spreadsheet.Cell(input)
-    with pytest.raises(PermissionError) as exc_info:
+    with pytest.raises(exception) as exc_info:
         cell.eval()
-    assert str(exc_info.value) == exception
+    assert str(exc_info.value) == message
