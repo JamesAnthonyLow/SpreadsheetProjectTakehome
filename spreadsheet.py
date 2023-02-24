@@ -55,7 +55,7 @@ class Cell:
         ref: typing.Callable[[str], typing.Union[int, float, str]] = _ref_placeholder,
     ) -> None:
         self.contents = contents
-        self._eval(ref)
+        self.eval(ref)
 
     @staticmethod
     def _parse_value(value: str) -> typing.Union[int, float, str]:
@@ -68,7 +68,7 @@ class Cell:
                 ...
         return value
 
-    def _eval(self, ref: typing.Callable[[str], typing.Union[int, float, str]]) -> None:
+    def eval(self, ref: typing.Callable[[str], typing.Union[int, float, str]]) -> None:
         if not self.is_dynamic:
             self.value = Cell._parse_value(self.contents)
         else:
@@ -99,27 +99,43 @@ MAX_SPREADSHEET_ROWS = 20
 
 
 class CellReferences:
+    """
+    Bi-Directional mapping of cells that reference other cells and cells that are referenced by those cells
+    """
+
     def __init__(self) -> None:
-        self._references: typing.Dict[str, typing.List[str]] = collections.defaultdict(
-            list
-        )
+        # Reference goes to key from value
+        self._to_references: typing.Dict[
+            str, typing.List[str]
+        ] = collections.defaultdict(list)
+        # Reference goes from key to value
+        self._from_references: typing.Dict[
+            str, typing.List[str]
+        ] = collections.defaultdict(list)
 
-    def get(self, key: CellKey) -> typing.Generator[str, None, None]:
-        """
-        Returns a generator to ensure there's no unsafe access to the underlying collection
-        """
-        return (reference for reference in self._references[key.key_string])
-
-    def add(self, key: CellKey, reference: CellKey) -> None:
-        def _dfs(reference: CellKey) -> None:
-            references = self._references[reference.key_string]
-            if key.key_string in references:
+    def update_references(self, from_: CellKey, to: typing.List[CellKey]) -> None:
+        # Detect circular references
+        def _dfs(to: CellKey) -> None:
+            references = self._from_references[to.key_string]
+            if from_.key_string in references:
                 raise ValueError("Circular reference detected")
             for reference in references:
                 _dfs(reference)
 
-        _dfs(reference)
-        self._references[key.key_string].append(reference.key_string)
+        # Remove old "to" references
+        for to in self._from_references[from_.key_string]:
+            self._to_references[to.key_string].remove(from_.key_string)
+
+        # Remove old "from" references
+        self._from_references[from_.key_string] = []
+
+        # Re-populate references
+        for to in to:
+            self._from_references[from_].append(to.key_string)
+            self._to_references[to.key_string].append(from_.key_string)
+
+    def get_references_to(self, to: CellKey) -> typing.List[CellKey]:
+        return self._to_references[to]
 
 
 class Spreadsheet:
@@ -149,12 +165,30 @@ class Spreadsheet:
     def __setitem__(self, key_string: str, contents: str) -> None:
         cell_key = CellKey(key_string=key_string)
 
+        references = []
+
         def _ref(key_string: str) -> typing.Union[int, float, str]:
             reference = CellKey(key_string=key_string)
-            self.cell_references.add(cell_key, reference)
+            references.append(reference)
             return self.__getitem__(key_string).value
 
         self.cells[cell_key.row][cell_key.column].set_contents(contents, ref=_ref)
+
+        # Update references
+        for ref in self.cell_references.get_from(cell_key):
+            if ref not in references:
+                self.cell_references.remove(to=ref, from_=cell_key)
+            else:
+                self.cell_references.add(to=ref, from_=cell_key)
+
+        for reference_key_string in self.cell_references.get_to(cell_key):
+            reference = CellKey(key_string=reference_key_string)
+
+            def _ref(key_string: str) -> typing.Union[int, float, str]:
+                """No need to recalculate cell references, we just need to recalculate the value"""
+                return self.__getitem__(key_string).value
+
+            self.cells[reference.row][reference.column].eval(_ref)
 
     def __getitem__(self, key_string: str) -> str:
         cell_key = CellKey(key_string=key_string)
