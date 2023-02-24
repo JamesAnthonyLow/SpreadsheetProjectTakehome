@@ -8,7 +8,7 @@ import spreadsheet
 @pytest.mark.parametrize(
     "input,expected",
     [
-        ("=SUM(1, 2)", True),
+        ("=sum([1, 2])", True),
         ("Hello World", False),
         ("Hello=World", False),
         ("=1", True),
