@@ -101,6 +101,10 @@ class Spreadsheet:
         cell_key = CellKey(key_string=key_string)
         self.cells[cell_key.row][cell_key.column].set_contents(contents)
 
+    def __getitem__(self, key_string: str) -> str:
+        cell_key = CellKey(key_string=key_string)
+        return self.cells[cell_key.row][cell_key.column].contents
+
     def __str__(self) -> str:
         headers = COLUMNS[: self.number_of_columns]
         table = prettytable.PrettyTable()
