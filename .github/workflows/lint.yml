@@ -1,7 +1,5 @@
 on: push
 name: Linter
-run-name: ${{ github.actor }} running!
-run-on: [push]
 jobs:
   run-linters:
     runs-on: ubuntu-latest
