@@ -1,0 +1,11 @@
+name: Linter
+run-name: ${{ github.actor }} running!
+run-on: [push]
+jobs:
+  run-linters:
+    runs-on: ubuntu-latest
+    steps:
+      - name: run linters
+        uses: actions/checkout@v2
+      - run: ${GITHUB_WORKSPACE}/scripts/lint.sh
+        shell: bash
