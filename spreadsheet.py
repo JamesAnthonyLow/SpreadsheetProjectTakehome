@@ -115,27 +115,32 @@ class CellReferences:
 
     def update_references(self, from_: CellKey, to: typing.List[CellKey]) -> None:
         # Detect circular references
-        def _dfs(to: CellKey) -> None:
-            references = self._from_references[to.key_string]
+        def _dfs(to_cell_key_string: str) -> None:
+            references = self._from_references[to_cell_key_string]
             if from_.key_string in references:
                 raise ValueError("Circular reference detected")
             for reference in references:
                 _dfs(reference)
 
+        for to_cell_key in to:
+            _dfs(to_cell_key.key_string)
         # Remove old "to" references
-        for to in self._from_references[from_.key_string]:
-            self._to_references[to.key_string].remove(from_.key_string)
+        for to_cell_key_string in self._from_references[from_.key_string]:
+            self._to_references[to_cell_key_string].remove(from_.key_string)
 
         # Remove old "from" references
         self._from_references[from_.key_string] = []
 
         # Re-populate references
-        for to in to:
-            self._from_references[from_].append(to.key_string)
-            self._to_references[to.key_string].append(from_.key_string)
+        for to_cell_key in to:
+            self._from_references[from_.key_string].append(to_cell_key.key_string)
+            self._to_references[to_cell_key.key_string].append(from_.key_string)
 
-    def get_references_to(self, to: CellKey) -> typing.List[CellKey]:
-        return self._to_references[to]
+    def get_references_to(self, to: CellKey) -> typing.List[str]:
+        return self._to_references[to.key_string]
+
+    def __repr__(self) -> str:
+        return f"{self._to_references} {self._from_references}"
 
 
 class Spreadsheet:
@@ -175,22 +180,24 @@ class Spreadsheet:
         self.cells[cell_key.row][cell_key.column].set_contents(contents, ref=_ref)
 
         # Update references
-        for ref in self.cell_references.get_from(cell_key):
-            if ref not in references:
-                self.cell_references.remove(to=ref, from_=cell_key)
-            else:
-                self.cell_references.add(to=ref, from_=cell_key)
+        self.cell_references.update_references(from_=cell_key, to=references)
 
-        for reference_key_string in self.cell_references.get_to(cell_key):
-            reference = CellKey(key_string=reference_key_string)
+        def _eval_cells_referencing(cell_key: CellKey) -> None:
+            for reference_key_string in self.cell_references.get_references_to(
+                cell_key
+            ):
+                reference = CellKey(key_string=reference_key_string)
 
-            def _ref(key_string: str) -> typing.Union[int, float, str]:
-                """No need to recalculate cell references, we just need to recalculate the value"""
-                return self.__getitem__(key_string).value
+                def _ref(key_string: str) -> typing.Union[int, float, str]:
+                    """No need to recalculate cell references, we just need to recalculate the value"""
+                    return self.__getitem__(key_string).value
 
-            self.cells[reference.row][reference.column].eval(_ref)
+                self.cells[reference.row][reference.column].eval(_ref)
+                _eval_cells_referencing(reference)
 
-    def __getitem__(self, key_string: str) -> str:
+        _eval_cells_referencing(cell_key=cell_key)
+
+    def __getitem__(self, key_string: str) -> Cell:
         cell_key = CellKey(key_string=key_string)
         return self.cells[cell_key.row][cell_key.column]
 

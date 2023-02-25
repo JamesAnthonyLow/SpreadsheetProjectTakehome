@@ -2,6 +2,8 @@ import cmd
 
 import spreadsheet
 
+sheet = spreadsheet.Spreadsheet()
+
 
 class SpreadsheetController(cmd.Cmd):
     intro = "Welcome to My Spreadsheet. Type help or ? to list commands"
@@ -24,17 +26,17 @@ class SpreadsheetController(cmd.Cmd):
 
     def do_print(self, _args: str) -> None:
         "Print out the current contents of the spreadsheet"
-        print(spreadsheet.SHEET)
+        print(sheet)
 
     def do_set(self, args: str) -> None:
         "Set the contents of a spreadsheet cell: [CELL-KEY] [CONTENTS]"
         cell_key, contents = args.split(" ")
-        spreadsheet.Sheet[cell_key] = contents
-        print(spreadsheet.Sheet)
+        sheet[cell_key] = contents
+        print(sheet)
 
     def do_get(self, cell_key: str) -> None:
         "Get the un-evaluated contents of a spreadsheet cell"
-        print(spreadsheet.Sheet[cell_key].contents)
+        print(sheet[cell_key].contents)
 
     def do_exit(self, _args: str) -> None:
         "Exit this prompt"
