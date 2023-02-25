@@ -124,6 +124,13 @@ Nested functions are also supported:
 +-----+---+---+------+------+------+---+---+---+---+---+
 ```
 
+### Directory Structure
+* [main.py](./main.py) - implements the console/prompt using the Python "[Cmd](https://docs.python.org/3/library/cmd.html)" class
+* [spreadsheet.py](./spreadsheet.py) - source code implementing "Spreadsheet" and "Cell" classes
+* [test](./test) - test directory housing pytest implemented unit tests
+* [scripts](./scripts) - contains helpful shell scripts that build and run the docker container to achieve various objectives such as [linting](./scripts/lint.sh), [testing](./scripts/test.sh), [updating requirements.txt using pip-tools](./scripts/update_requirements.sh) and [running the spreadsheet prompt](./scripts/run.sh)
+
+
 ### Limitations (WIP)
 
 Currently the spreadsheet app only supports editing the spreadsheet in memory.  There is no on-disk representation so when you exit the spreadsheet app you lose whatever progress you had made.  Saving the spreadsheet to a CSV of the users choice would likely be somewhat trivial.  Additionally, the spreadsheet is restricted to 10 columns and 10 rows.  26 columns and N number of rows is supported in the implementation of the "Spreadsheet" class but any more columns than 26 would require a slight refactor to the "CellKey" class.  Another nice addition would be the ability to reference ranges (i.e, ```=sum(ref("A1:A8"))```) which should be possible with some minor refactors to the reference code.
