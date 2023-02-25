@@ -73,7 +73,7 @@ Functions are implemented using python3 itself! (see [compile](https://docs.pyth
 +-----+---+---+---+------+---+---+---+---+---+---+
 ```
 
-This is implemented using a whitelist with the following python functions (see **spreadsheet.py:METHOD_WHITELIST**):
+This is implemented using an allowlist with the following python functions (see **spreadsheet.py:METHOD_ALLOW_LIST**):
 
 * **sum**
 * **max**

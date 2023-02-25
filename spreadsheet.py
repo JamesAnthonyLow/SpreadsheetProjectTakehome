@@ -5,9 +5,9 @@ import typing
 import prettytable
 
 COLUMNS = [c for c in "ABCDEFGHIJKLMNOPQRSTUVWXYZ"]
-METHOD_WHITELIST = ["sum", "max", "min", "ref", "join", "format"]
+METHOD_ALLOW_LIST = ["sum", "max", "min", "ref", "join", "format"]
 """
-In addition to this whitelist all python expressions 
+In addition to this allowlist all python expressions 
 (i.e., +,-,/,* and list/dictionary comprehensions) are supported
 
 Imports are forbidden
@@ -87,11 +87,11 @@ class Cell:
             compiled = compile(
                 filename="<string>", source=self.contents[1:], mode="eval"
             )
-            blacklisted = [
-                name for name in compiled.co_names if name not in METHOD_WHITELIST
+            forbidden = [
+                name for name in compiled.co_names if name not in METHOD_ALLOW_LIST
             ]
-            if len(blacklisted) > 0:
-                raise PermissionError(f"Method not in whitelist: {blacklisted}!!")
+            if len(forbidden) > 0:
+                raise PermissionError(f"Method not in allowlist: {forbidden}!!")
 
             value = eval(compiled, {"ref": ref})
             if value is None:
