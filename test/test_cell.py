@@ -7,7 +7,7 @@ import spreadsheet
 
 @pytest.fixture
 def cell() -> spreadsheet.Cell:
-    return spreadsheet.Cell(0, 0)
+    return spreadsheet.Cell()
 
 
 @pytest.mark.parametrize(

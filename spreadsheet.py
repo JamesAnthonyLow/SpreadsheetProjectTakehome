@@ -2,6 +2,7 @@ import collections
 import re
 import typing
 
+import attr
 import prettytable
 
 COLUMNS = [c for c in "ABCDEFGHIJKLMNOPQRSTUVWXYZ"]
@@ -14,37 +15,33 @@ Imports are forbidden
 """
 
 
+@attr.define(frozen=True)
 class CellKey:
-    def __init__(
-        self,
-        key_string: typing.Optional[str] = None,
-        row: typing.Optional[int] = None,
-        column: typing.Optional[int] = None,
-    ) -> None:
-        if key_string is not None and row is None and column is None:
-            result = re.search(r"^([A-Z])([0-9]+)$", key_string)
-            if result is None:
-                raise KeyError("Invalid key format")
-            column_character, row_idx = result.groups()
-            self.key_string = key_string
-            self.column = COLUMNS.index(column_character)
-            self.row = int(row_idx) - 1
-        elif row is not None and column is not None and key_string is None:
-            self.column = column
-            self.row = row
-            self.key_string = COLUMNS[column] + str(self.row + 1)
-        else:
-            raise ValueError(
-                "CellKey must be instantiated with either key_string are or row and column args"
-            )
+    key_string: str
+    row: int
+    column: int
+
+    @classmethod
+    def from_key_string(cls, key_string: str) -> "CellKey":
+        result = re.search(r"^([A-Z])([0-9]+)$", key_string)
+        if result is None:
+            raise KeyError("Invalid key format")
+        column_character, row_idx = result.groups()
+        column = COLUMNS.index(column_character)
+        row = int(row_idx) - 1
+        return cls(key_string, row, column)
+
+    @classmethod
+    def from_row_and_column(cls, row: int, column: int) -> "CellKey":
+        key_string = COLUMNS[column] + str(row + 1)
+        return cls(key_string, row, column)
 
     def __repr__(self) -> str:
-        return f"Column: {self.column}, Row: {self.row}"
+        return self.key_string
 
 
 class Cell:
-    def __init__(self, row: int, column: int) -> None:
-        self.key = CellKey(row=row, column=column)
+    def __init__(self) -> None:
         self.contents: str = ""
         self.value: typing.Union[int, float, str] = ""
 
@@ -111,38 +108,38 @@ class CellReferences:
     def __init__(self) -> None:
         # Reference goes to key from value
         self._to_references: typing.Dict[
-            str, typing.List[str]
+            CellKey, typing.List[CellKey]
         ] = collections.defaultdict(list)
         # Reference goes from key to value
         self._from_references: typing.Dict[
-            str, typing.List[str]
+            CellKey, typing.List[CellKey]
         ] = collections.defaultdict(list)
 
     def update_references(self, from_: CellKey, to: typing.List[CellKey]) -> None:
         # Detect circular references
-        def _dfs(to_cell_key_string: str) -> None:
-            references = self._from_references[to_cell_key_string]
-            if from_.key_string in references:
+        def _dfs(to_cell_key: CellKey) -> None:
+            references = self._from_references[to_cell_key]
+            if from_ in references:
                 raise ValueError("Circular reference detected")
             for reference in references:
                 _dfs(reference)
 
         for to_cell_key in to:
-            _dfs(to_cell_key.key_string)
+            _dfs(to_cell_key)
         # Remove old "to" references
-        for to_cell_key_string in self._from_references[from_.key_string]:
-            self._to_references[to_cell_key_string].remove(from_.key_string)
+        for to_cell_key in self._from_references[from_]:
+            self._to_references[to_cell_key].remove(from_)
 
         # Remove old "from" references
-        self._from_references[from_.key_string] = []
+        self._from_references[from_] = []
 
         # Re-populate references
         for to_cell_key in to:
-            self._from_references[from_.key_string].append(to_cell_key.key_string)
-            self._to_references[to_cell_key.key_string].append(from_.key_string)
+            self._from_references[from_].append(to_cell_key)
+            self._to_references[to_cell_key].append(from_)
 
-    def get_references_to(self, to: CellKey) -> typing.List[str]:
-        return self._to_references[to.key_string]
+    def get_references_to(self, to: CellKey) -> typing.List[CellKey]:
+        return self._to_references[to]
 
     def __repr__(self) -> str:
         return f"{self._to_references} {self._from_references}"
@@ -166,19 +163,19 @@ class Spreadsheet:
         self.cell_width = cell_width
         self.cells = []
         self.cell_references = CellReferences()
-        for row_idx in range(self.number_of_rows):
+        for _ in range(self.number_of_rows):
             row = []
-            for column_idx in range(self.number_of_columns):
-                row.append(Cell(row_idx, column_idx))
+            for _ in range(self.number_of_columns):
+                row.append(Cell())
             self.cells.append(row)
 
     def __setitem__(self, key_string: str, contents: str) -> None:
-        cell_key = CellKey(key_string=key_string)
+        cell_key = CellKey.from_key_string(key_string=key_string)
 
         references = []
 
         def _ref(key_string: str) -> typing.Union[int, float, str]:
-            reference = CellKey(key_string=key_string)
+            reference = CellKey.from_key_string(key_string=key_string)
             references.append(reference)
             return self.__getitem__(key_string).value
 
@@ -188,10 +185,7 @@ class Spreadsheet:
         self.cell_references.update_references(from_=cell_key, to=references)
 
         def _eval_cells_referencing(cell_key: CellKey) -> None:
-            for reference_key_string in self.cell_references.get_references_to(
-                cell_key
-            ):
-                reference = CellKey(key_string=reference_key_string)
+            for reference in self.cell_references.get_references_to(cell_key):
 
                 def _ref(key_string: str) -> typing.Union[int, float, str]:
                     """No need to recalculate cell references, we just need the value"""
@@ -203,7 +197,7 @@ class Spreadsheet:
         _eval_cells_referencing(cell_key=cell_key)
 
     def __getitem__(self, key_string: str) -> Cell:
-        cell_key = CellKey(key_string=key_string)
+        cell_key = CellKey.from_key_string(key_string=key_string)
         return self.cells[cell_key.row][cell_key.column]
 
     def __str__(self) -> str:

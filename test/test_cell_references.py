@@ -8,15 +8,18 @@ import spreadsheet
 def test_circular_references_disallowed() -> None:
     cell_references = spreadsheet.CellReferences()
     cell_references.update_references(
-        spreadsheet.CellKey("A2"), [spreadsheet.CellKey("C2")]
+        spreadsheet.CellKey.from_key_string("A2"),
+        [spreadsheet.CellKey.from_key_string("C2")],
     )
     cell_references.update_references(
-        spreadsheet.CellKey("C2"), [spreadsheet.CellKey("B2")]
+        spreadsheet.CellKey.from_key_string("C2"),
+        [spreadsheet.CellKey.from_key_string("B2")],
     )
 
     with pytest.raises(ValueError) as exc_info:
         cell_references.update_references(
-            spreadsheet.CellKey("B2"), [spreadsheet.CellKey("A2")]
+            spreadsheet.CellKey.from_key_string("B2"),
+            [spreadsheet.CellKey.from_key_string("A2")],
         )
     assert str(exc_info.value) == "Circular reference detected"
 
@@ -46,7 +49,18 @@ def test_references_update(
     cell_references = spreadsheet.CellReferences()
     for from_, to in updates:
         cell_references.update_references(
-            spreadsheet.CellKey(from_), [spreadsheet.CellKey(t) for t in to]
+            spreadsheet.CellKey.from_key_string(from_),
+            [spreadsheet.CellKey.from_key_string(t) for t in to],
         )
-    assert dict(cell_references._to_references) == expected_to
-    assert dict(cell_references._from_references) == expected_from
+
+    def _assert_eq(actual: typing.Any, expected: typing.Any) -> None:
+        expected_converted = {
+            spreadsheet.CellKey.from_key_string(k): [
+                spreadsheet.CellKey.from_key_string(v) for v in values
+            ]
+            for k, values in expected.items()
+        }
+        assert dict(actual) == expected_converted
+
+    _assert_eq(cell_references._to_references, expected_to)
+    _assert_eq(cell_references._from_references, expected_from)
