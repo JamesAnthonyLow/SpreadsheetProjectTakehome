@@ -5,6 +5,13 @@ import typing
 import prettytable
 
 COLUMNS = [c for c in "ABCDEFGHIJKLMNOPQRSTUVWXYZ"]
+METHOD_WHITELIST = ["sum", "max", "min", "ref", "join", "format"]
+"""
+In addition to this whitelist all python expressions 
+(i.e., +,-,/,* and list/dictionary comprehensions) are supported
+
+Imports are forbidden
+"""
 
 
 class CellKey:
@@ -47,6 +54,7 @@ class Cell:
 
     @staticmethod
     def _ref_placeholder(_: str) -> str:
+        """Mostly used for testing only"""
         return ""
 
     def set_contents(
@@ -69,21 +77,18 @@ class Cell:
         return value
 
     def eval(self, ref: typing.Callable[[str], typing.Union[int, float, str]]) -> None:
+        """
+        ref method is passed in to allow access to a global state that keeps track of
+        what cells reference eachother without forcing the Cell class to have access to the Spreadsheet class
+        """
         if not self.is_dynamic:
             self.value = Cell._parse_value(self.contents)
         else:
-            method_whitelist = ["sum", "max", "min", "ref"]
-            """
-            In addition to this whitelist all python expressions 
-            (i.e., +,-,/,* and list/dictionary comprehensions) are supported
-
-            Imports are forbidden
-            """
             compiled = compile(
                 filename="<string>", source=self.contents[1:], mode="eval"
             )
             blacklisted = [
-                name for name in compiled.co_names if name not in method_whitelist
+                name for name in compiled.co_names if name not in METHOD_WHITELIST
             ]
             if len(blacklisted) > 0:
                 raise PermissionError(f"Method not in whitelist: {blacklisted}!!")
@@ -189,7 +194,7 @@ class Spreadsheet:
                 reference = CellKey(key_string=reference_key_string)
 
                 def _ref(key_string: str) -> typing.Union[int, float, str]:
-                    """No need to recalculate cell references, we just need to recalculate the value"""
+                    """No need to recalculate cell references, we just need the value"""
                     return self.__getitem__(key_string).value
 
                 self.cells[reference.row][reference.column].eval(_ref)

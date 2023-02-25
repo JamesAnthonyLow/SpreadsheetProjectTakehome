@@ -28,9 +28,14 @@ class SpreadsheetController(cmd.Cmd):
         "Print out the current contents of the spreadsheet"
         print(sheet)
 
+    def do_clear(self, cell_key: str) -> None:
+        "Clear the contents of a spreadsheet cell: [CELL-KEY]"
+        sheet[cell_key] = ""
+        print(sheet)
+
     def do_set(self, args: str) -> None:
         "Set the contents of a spreadsheet cell: [CELL-KEY] [CONTENTS]"
-        cell_key, contents = args.split(" ")
+        cell_key, contents = args.split(" ", 1)
         sheet[cell_key] = contents
         print(sheet)
 
