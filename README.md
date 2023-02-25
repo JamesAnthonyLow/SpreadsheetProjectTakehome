@@ -7,7 +7,7 @@ To run, execute:
 $ ./scripts/run.sh
 ```
 
-This will build the Docker image **spreadsheet_project_image** and run a container that opens a prompt:
+This will build the Docker image **spreadsheet_project_image** and run a container that opens a prompt (implemented using the Python "[Cmd](https://docs.python.org/3/library/cmd.html)" class):
 
 ```
  Welcome to My Spreadsheet. Type help or ? to list commands
