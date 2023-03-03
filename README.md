@@ -130,6 +130,9 @@ Nested functions are also supported:
 * [test](./test) - test directory housing pytest implemented unit tests
 * [scripts](./scripts) - contains helpful shell scripts that build and run the docker container to achieve various objectives such as [linting](./scripts/lint.sh), [testing](./scripts/test.sh), [updating requirements.txt using pip-tools](./scripts/update_requirements.sh) and [running the spreadsheet prompt](./scripts/run.sh)
 
+### Reference Implementation
+References are implemented using a bi-directional mapping from a cell to the cells it references and a cell to the that are referenced by it.  Every time a cell is updated both mappings are updated and the cells that reference the given cell are re-computed.  The reference "counting" logic is implemented by passing a callback to the **compile** builtin.
+
 
 ### Limitations (WIP)
 
