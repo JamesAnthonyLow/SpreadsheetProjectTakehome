@@ -21,7 +21,17 @@ def test_circular_references_disallowed() -> None:
             spreadsheet.CellKey.from_key_string("B2"),
             [spreadsheet.CellKey.from_key_string("A2")],
         )
-    assert str(exc_info.value) == "Circular reference detected"
+    assert str(exc_info.value) == "Circular reference forbidden!!"
+
+
+def test_self_reference_disallowed() -> None:
+    cell_references = spreadsheet.CellReferences()
+    with pytest.raises(ValueError) as exc_info:
+        cell_references.update_references(
+            spreadsheet.CellKey.from_key_string("C2"),
+            [spreadsheet.CellKey.from_key_string("C2")],
+        )
+    assert str(exc_info.value) == "Self-reference forbidden!!"
 
 
 @pytest.mark.parametrize(

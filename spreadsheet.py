@@ -116,11 +116,15 @@ class CellReferences:
         ] = collections.defaultdict(list)
 
     def update_references(self, from_: CellKey, to: typing.List[CellKey]) -> None:
+        # Detected self reference
+        if from_ in to:
+            raise ValueError("Self-reference forbidden!!")
+
         # Detect circular references
         def _dfs(to_cell_key: CellKey) -> None:
             references = self._from_references[to_cell_key]
             if from_ in references:
-                raise ValueError("Circular reference detected")
+                raise ValueError("Circular reference forbidden!!")
             for reference in references:
                 _dfs(reference)
 
